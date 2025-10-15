@@ -6,6 +6,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Investments from "./pages/Investments";
+import Transactions from "./pages/Transactions";
+import Referrals from "./pages/Referrals";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./components/DashboardLayout";
@@ -29,10 +33,10 @@ const App = () => (
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/investments" element={<Dashboard />} />
-            <Route path="/transactions" element={<Dashboard />} />
-            <Route path="/referrals" element={<Dashboard />} />
-            <Route path="/settings" element={<Dashboard />} />
+            <Route path="/dashboard/investments" element={<Investments />} />
+            <Route path="/dashboard/transactions" element={<Transactions />} />
+            <Route path="/dashboard/referrals" element={<Referrals />} />
+            <Route path="/dashboard/settings" element={<Settings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

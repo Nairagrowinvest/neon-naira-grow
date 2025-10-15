@@ -18,10 +18,10 @@ import { toast } from "sonner";
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "My Investments", url: "/investments", icon: TrendingUp },
-  { title: "Transactions", url: "/transactions", icon: ArrowRightLeft },
-  { title: "Referrals", url: "/referrals", icon: Users },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "My Investments", url: "/dashboard/investments", icon: TrendingUp },
+  { title: "Transactions", url: "/dashboard/transactions", icon: ArrowRightLeft },
+  { title: "Referrals", url: "/dashboard/referrals", icon: Users },
+  { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];
 
 export function AppSidebar() {

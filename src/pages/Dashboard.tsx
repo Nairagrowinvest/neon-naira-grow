@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Wallet, TrendingUp, DollarSign, Users, Plus } from "lucide-react";
+import { format } from "date-fns";
 import { StatsCard } from "@/components/StatsCard";
 import { InvestmentModal } from "@/components/InvestmentModal";
 import { Button } from "@/components/ui/button";
@@ -59,21 +60,33 @@ export default function Dashboard() {
     },
   });
 
-  // Mock data for charts
-  const growthData = [
-    { name: "Mon", investment: 4000, profit: 2400 },
-    { name: "Tue", investment: 3000, profit: 1398 },
-    { name: "Wed", investment: 2000, profit: 9800 },
-    { name: "Thu", investment: 2780, profit: 3908 },
-    { name: "Fri", investment: 1890, profit: 4800 },
-    { name: "Sat", investment: 2390, profit: 3800 },
-    { name: "Sun", investment: 3490, profit: 4300 },
-  ];
+  // Get real investment data for charts
+  const { data: investmentHistory } = useQuery({
+    queryKey: ["investment-history"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data } = await (supabase as any)
+        .from("investments")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      return data || [];
+    },
+  });
+
+  // Process growth data from real investments
+  const growthData = investmentHistory?.slice(-7).map((inv: any, index: number) => ({
+    name: format(new Date(inv.created_at), "EEE"),
+    investment: parseFloat(inv.amount),
+    profit: parseFloat(inv.amount) * (inv.profit_percentage / 100),
+  })) || [];
 
   const distributionData = [
     { name: "Active", value: stats?.activeCount || 0, color: "hsl(var(--glow-purple))" },
     { name: "Completed", value: stats?.completedCount || 0, color: "hsl(var(--glow-cyan))" },
-    { name: "Pending", value: 0, color: "hsl(var(--glow-pink))" },
   ];
 
   return (
