@@ -46,7 +46,7 @@ export default function Referrals() {
   });
 
   const referralLink = profile?.referral_code 
-    ? `${window.location.origin}/auth?ref=${profile.referral_code}`
+    ? `https://nairagrowinvest.netlify.app/auth?ref=${profile.referral_code}`
     : "";
 
   const copyToClipboard = () => {
