@@ -12,8 +12,16 @@ import { TrendingUp } from "lucide-react";
 export default function Auth() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
+    // Check for referral code in URL
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/dashboard");
@@ -37,27 +45,43 @@ export default function Auth() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
-    const referralCode = formData.get("referralCode") as string;
+    const userReferralCode = formData.get("referralCode") as string;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           full_name: fullName,
-          referral_code: referralCode,
         },
       },
     });
 
-    setIsLoading(false);
-
     if (error) {
+      setIsLoading(false);
       toast.error(error.message);
-    } else {
-      toast.success("Account created successfully!");
+      return;
     }
+
+    // If referral code was provided, create referral record
+    if (userReferralCode && data.user) {
+      const { data: referrer } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", userReferralCode)
+        .single();
+
+      if (referrer) {
+        await supabase.from("referrals").insert({
+          referrer_id: referrer.id,
+          referred_id: data.user.id,
+        });
+      }
+    }
+
+    setIsLoading(false);
+    toast.success("Account created successfully!");
   };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -184,6 +208,8 @@ export default function Auth() {
                       id="referral-code"
                       name="referralCode"
                       type="text"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value)}
                       placeholder="Enter referral code"
                       className="border-glow-purple/50"
                     />

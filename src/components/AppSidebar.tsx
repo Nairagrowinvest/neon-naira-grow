@@ -1,5 +1,6 @@
-import { Home, TrendingUp, ArrowRightLeft, Users, Settings, LogOut } from "lucide-react";
+import { Home, TrendingUp, ArrowRightLeft, Users, Settings, LogOut, Shield } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +27,22 @@ const menuItems = [
 
 export function AppSidebar() {
   const navigate = useNavigate();
+
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      return data?.role || null;
+    },
+  });
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -77,6 +94,25 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {userRole === "admin" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/admin"
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-6 py-3 transition-all ${
+                          isActive
+                            ? "border-l-2 border-primary bg-muted/50 text-primary glow-purple"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        }`
+                      }
+                    >
+                      <Shield className="h-5 w-5" />
+                      <span>Admin</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

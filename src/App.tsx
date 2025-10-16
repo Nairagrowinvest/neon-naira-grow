@@ -10,6 +10,7 @@ import Investments from "./pages/Investments";
 import Transactions from "./pages/Transactions";
 import Referrals from "./pages/Referrals";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./components/DashboardLayout";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/dashboard/transactions" element={<Transactions />} />
             <Route path="/dashboard/referrals" element={<Referrals />} />
             <Route path="/dashboard/settings" element={<Settings />} />
+            <Route path="/dashboard/admin" element={<Admin />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
