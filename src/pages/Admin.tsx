@@ -47,13 +47,24 @@ export default function Admin() {
         0
       ) || 0;
 
+      // Get referral data for each withdrawal user
+      const { data: referrals } = await supabase
+        .from("referrals")
+        .select("referred_id, referrer_id");
+
       return {
         totalUsers: totalUsers?.length || 0,
         pendingWithdrawals: pendingWithdrawals?.length || 0,
         totalInvested: totalInvestedAmount,
+        referrals: referrals || [],
       };
     },
   });
+
+  // Check if user has invited someone
+  const hasInvited = (userId: string) => {
+    return stats?.referrals?.some((r) => r.referrer_id === userId) || false;
+  };
 
   const updateWithdrawal = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -141,6 +152,7 @@ export default function Admin() {
                     <TableHead>User</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Bank Details</TableHead>
+                    <TableHead>Referred</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Actions</TableHead>
@@ -164,6 +176,11 @@ export default function Admin() {
                           <p className="text-sm">{withdrawal.account_name}</p>
                           <p className="text-sm text-muted-foreground">{withdrawal.account_number}</p>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={hasInvited(withdrawal.user_id) ? "default" : "secondary"}>
+                          {hasInvited(withdrawal.user_id) ? "Yes" : "No"}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStatusVariant(withdrawal.status)}>

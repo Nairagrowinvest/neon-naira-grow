@@ -1,9 +1,8 @@
-import { Bell, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationsPopover } from "./NotificationsPopover";
 
 export function TopNavbar() {
   const { data: profile } = useQuery({
@@ -39,10 +38,7 @@ export function TopNavbar() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative hover:bg-muted/50">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full glow-pink" />
-        </Button>
+        <NotificationsPopover />
 
         <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-muted/30 border border-glow-purple/20">
           <Avatar className="h-8 w-8 border-2 border-primary glow-purple">

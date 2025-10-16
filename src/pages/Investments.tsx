@@ -1,14 +1,27 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp } from "lucide-react";
+import { Plus, TrendingUp, Clock } from "lucide-react";
 import { InvestmentModal } from "@/components/InvestmentModal";
-import { format } from "date-fns";
+import { format, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
 
 export default function Investments() {
   const [showInvestModal, setShowInvestModal] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Call function to complete expired investments
+  const { mutate: checkInvestments } = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('complete_expired_investments');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-investments"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+  });
 
   const { data: investments, isLoading } = useQuery({
     queryKey: ["all-investments"],
@@ -26,6 +39,30 @@ export default function Investments() {
       return data || [];
     },
   });
+
+  // Check for expired investments on mount and every minute
+  useEffect(() => {
+    checkInvestments();
+    const interval = setInterval(() => {
+      checkInvestments();
+    }, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const getCountdown = (endDate: string) => {
+    const now = new Date();
+    const end = new Date(endDate);
+    
+    if (now >= end) return "Completed";
+    
+    const days = differenceInDays(end, now);
+    const hours = differenceInHours(end, now) % 24;
+    const minutes = differenceInMinutes(end, now) % 60;
+    
+    if (days > 0) return `${days}d ${hours}h remaining`;
+    if (hours > 0) return `${hours}h ${minutes}m remaining`;
+    return `${minutes}m remaining`;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,6 +121,14 @@ export default function Investments() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                {investment.status === 'active' && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/10 mb-3">
+                    <Clock className="h-4 w-4 text-primary animate-pulse" />
+                    <span className="text-sm font-semibold text-primary">
+                      {getCountdown(investment.end_date)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Profit:</span>
                   <span className="text-glow-purple font-semibold">
