@@ -138,14 +138,14 @@ export default function Admin() {
 
       if (balanceError) throw balanceError;
 
-      // Create notification
-      const { error: notifError } = await supabase
-        .from("notifications")
-        .insert({
-          user_id: userId,
+      // Create notification via backend function
+      const { error: notifError } = await supabase.functions.invoke('create-notification', {
+        body: {
+          userId,
           title: "Investment Approved",
           message: `Your investment of ₦${amount.toLocaleString()} has been approved and is now active!`
-        });
+        }
+      });
 
       if (notifError) throw notifError;
     },
@@ -169,14 +169,14 @@ export default function Admin() {
 
       if (investError) throw investError;
 
-      // Create notification
-      const { error: notifError } = await supabase
-        .from("notifications")
-        .insert({
-          user_id: userId,
+      // Create notification via backend function
+      const { error: notifError } = await supabase.functions.invoke('create-notification', {
+        body: {
+          userId,
           title: "Investment Rejected",
           message: "Your investment request has been rejected. Please contact support for more information."
-        });
+        }
+      });
 
       if (notifError) throw notifError;
     },
