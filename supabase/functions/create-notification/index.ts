@@ -40,10 +40,32 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
+    // Check if user is an admin
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (roleError || !userRole || userRole.role !== 'admin') {
+      throw new Error('Forbidden: Only admins can create notifications')
+    }
+
     const { userId, title, message } = await req.json()
 
     if (!userId || !title || !message) {
       throw new Error('Missing required fields: userId, title, message')
+    }
+
+    // Validate input lengths to prevent abuse
+    if (title.length > 200) {
+      throw new Error('Title must be less than 200 characters')
+    }
+    if (message.length > 1000) {
+      throw new Error('Message must be less than 1000 characters')
+    }
+    if (typeof userId !== 'string' || userId.length === 0) {
+      throw new Error('Invalid userId')
     }
 
     console.log(`Creating notification for user ${userId}: ${title}`)

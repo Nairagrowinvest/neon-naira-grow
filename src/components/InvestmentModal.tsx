@@ -7,6 +7,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
+import { z } from "zod";
+
+const investmentSchema = z.object({
+  amount: z.number()
+    .min(2500, "Minimum investment amount is ₦2,500")
+    .max(10000000, "Maximum investment amount is ₦10,000,000")
+    .positive("Amount must be positive")
+});
 
 interface InvestmentModalProps {
   open: boolean;
@@ -67,8 +75,15 @@ export function InvestmentModal({ open, onOpenChange }: InvestmentModalProps) {
     e.preventDefault();
     const investAmount = parseFloat(amount);
 
-    if (isNaN(investAmount) || investAmount < 2500) {
-      toast.error("Minimum investment is ₦2,500");
+    if (isNaN(investAmount)) {
+      toast.error("Please enter a valid number");
+      return;
+    }
+
+    // Validate using zod schema
+    const validation = investmentSchema.safeParse({ amount: investAmount });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
       return;
     }
 

@@ -8,6 +8,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DollarSign } from "lucide-react";
+import { z } from "zod";
+
+const withdrawalSchema = z.object({
+  amount: z.number()
+    .min(100, "Minimum withdrawal amount is ₦100")
+    .positive("Amount must be positive"),
+  bankName: z.string().min(1, "Bank name is required"),
+  accountNumber: z.string()
+    .length(10, "Account number must be exactly 10 digits")
+    .regex(/^\d+$/, "Account number must contain only digits"),
+  accountName: z.string()
+    .min(2, "Account name must be at least 2 characters")
+    .max(100, "Account name must be less than 100 characters")
+    .regex(/^[a-zA-Z\s]+$/, "Account name must contain only letters and spaces")
+});
 
 interface WithdrawalModalProps {
   open: boolean;
@@ -94,6 +109,23 @@ export function WithdrawalModal({ open, onOpenChange, maxAmount }: WithdrawalMod
       toast({
         title: "Missing Information",
         description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate using zod schema
+    const validation = withdrawalSchema.safeParse({
+      amount: parseFloat(amount),
+      bankName,
+      accountNumber,
+      accountName
+    });
+
+    if (!validation.success) {
+      toast({
+        title: "Validation Error",
+        description: validation.error.errors[0].message,
         variant: "destructive",
       });
       return;
