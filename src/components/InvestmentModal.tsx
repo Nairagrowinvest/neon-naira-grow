@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Copy } from "lucide-react";
 
 interface InvestmentModalProps {
   open: boolean;
@@ -21,13 +22,13 @@ export function InvestmentModal({ open, onOpenChange }: InvestmentModalProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Create investment
+      // Create investment with pending status
       const { data: investment, error: investError } = await (supabase as any)
         .from("investments")
         .insert({
           user_id: user.id,
           amount: investmentAmount,
-          status: "active",
+          status: "pending",
         })
         .select()
         .single();
@@ -51,7 +52,7 @@ export function InvestmentModal({ open, onOpenChange }: InvestmentModalProps) {
       return investment;
     },
     onSuccess: () => {
-      toast.success("Investment created successfully!");
+      toast.success("Payment request submitted! Please transfer to the bank account shown and wait for admin approval.");
       queryClient.invalidateQueries({ queryKey: ["investments"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
       setAmount("");
@@ -88,6 +89,69 @@ export function InvestmentModal({ open, onOpenChange }: InvestmentModalProps) {
             Start earning 70% profit in just 7 days. Minimum investment: ₦2,500
           </DialogDescription>
         </DialogHeader>
+
+        <div className="p-4 rounded-lg bg-muted/30 border border-glow-cyan/30 space-y-3">
+          <h3 className="font-semibold text-primary">Payment Details</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Bank Name:</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Sterling Bank</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    navigator.clipboard.writeText("Sterling Bank");
+                    toast.success("Bank name copied!");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Account Name:</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">More4less Nairagrow FLW</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    navigator.clipboard.writeText("More4less Nairagrow FLW");
+                    toast.success("Account name copied!");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Account Number:</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-primary">8817827080</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    navigator.clipboard.writeText("8817827080");
+                    toast.success("Account number copied!");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Transfer the investment amount to this account and submit the form. Admin will approve once payment is confirmed.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -130,7 +194,7 @@ export function InvestmentModal({ open, onOpenChange }: InvestmentModalProps) {
             className="w-full gradient-primary border-glow-purple glow-purple"
             disabled={investMutation.isPending}
           >
-            {investMutation.isPending ? "Creating..." : "Invest Now"}
+            {investMutation.isPending ? "Submitting..." : "Submit Investment Request"}
           </Button>
         </form>
       </DialogContent>

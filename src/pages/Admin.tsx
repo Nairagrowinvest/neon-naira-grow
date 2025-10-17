@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Users, DollarSign } from "lucide-react";
+import { CheckCircle, XCircle, Users, DollarSign, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { StatsCard } from "@/components/StatsCard";
+import { toast as sonnerToast } from "sonner";
 
 export default function Admin() {
   const { toast } = useToast();
@@ -19,6 +20,20 @@ export default function Admin() {
       const { data, error } = await supabase
         .from("withdrawal_requests")
         .select("*, profiles!withdrawal_requests_user_id_fkey(email, full_name)")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: pendingInvestments, isLoading: investmentsLoading } = useQuery({
+    queryKey: ["admin-pending-investments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("investments")
+        .select("*, profiles!investments_user_id_fkey(email, full_name)")
+        .eq("status", "pending")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -94,6 +109,86 @@ export default function Admin() {
     },
   });
 
+  const approveInvestment = useMutation({
+    mutationFn: async ({ id, userId, amount }: { id: string; userId: string; amount: number }) => {
+      // Update investment status to active
+      const { error: investError } = await supabase
+        .from("investments")
+        .update({ 
+          status: "active",
+          start_date: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (investError) throw investError;
+
+      // Deduct amount from user's balance
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("total_balance")
+        .eq("id", userId)
+        .single();
+
+      const currentBalance = profile?.total_balance || 0;
+      
+      const { error: balanceError } = await supabase
+        .from("profiles")
+        .update({ total_balance: currentBalance - amount })
+        .eq("id", userId);
+
+      if (balanceError) throw balanceError;
+
+      // Create notification
+      const { error: notifError } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: userId,
+          title: "Investment Approved",
+          message: `Your investment of ₦${amount.toLocaleString()} has been approved and is now active!`
+        });
+
+      if (notifError) throw notifError;
+    },
+    onSuccess: () => {
+      sonnerToast.success("Investment approved successfully!");
+      queryClient.invalidateQueries({ queryKey: ["admin-pending-investments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (error: Error) => {
+      sonnerToast.error("Failed to approve investment: " + error.message);
+    },
+  });
+
+  const rejectInvestment = useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      // Update investment status to rejected
+      const { error: investError } = await supabase
+        .from("investments")
+        .update({ status: "rejected" })
+        .eq("id", id);
+
+      if (investError) throw investError;
+
+      // Create notification
+      const { error: notifError } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: userId,
+          title: "Investment Rejected",
+          message: "Your investment request has been rejected. Please contact support for more information."
+        });
+
+      if (notifError) throw notifError;
+    },
+    onSuccess: () => {
+      sonnerToast.success("Investment rejected");
+      queryClient.invalidateQueries({ queryKey: ["admin-pending-investments"] });
+    },
+    onError: (error: Error) => {
+      sonnerToast.error("Failed to reject investment: " + error.message);
+    },
+  });
+
   const getStatusVariant = (status: string): "default" | "secondary" | "destructive" => {
     switch (status) {
       case "approved":
@@ -134,6 +229,86 @@ export default function Admin() {
           glowColor="pink"
         />
       </div>
+
+      <Card className="gradient-card border-glow-cyan glow-cyan">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Pending Investments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {investmentsLoading ? (
+            <p className="text-muted-foreground text-center py-8">Loading...</p>
+          ) : !pendingInvestments || pendingInvestments.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No pending investments</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Expected Return</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingInvestments.map((investment: any) => (
+                    <TableRow key={investment.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{investment.profiles?.full_name || "Unknown"}</p>
+                          <p className="text-sm text-muted-foreground">{investment.profiles?.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ₦{parseFloat(investment.amount.toString()).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-secondary font-medium">
+                        ₦{(parseFloat(investment.amount.toString()) * 1.7).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(investment.created_at), "MMM dd, yyyy HH:mm")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => approveInvestment.mutate({ 
+                              id: investment.id, 
+                              userId: investment.user_id,
+                              amount: parseFloat(investment.amount.toString())
+                            })}
+                            disabled={approveInvestment.isPending}
+                            className="gradient-primary"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => rejectInvestment.mutate({ 
+                              id: investment.id,
+                              userId: investment.user_id
+                            })}
+                            disabled={rejectInvestment.isPending}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="gradient-card border-glow-purple glow-purple">
         <CardHeader>
