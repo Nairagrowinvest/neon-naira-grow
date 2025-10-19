@@ -14,12 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      investment_payouts: {
+        Row: {
+          bonus_amount: number | null
+          claimed_at: string | null
+          created_at: string | null
+          day_number: number
+          id: string
+          investment_id: string
+          profit_amount: number
+          user_id: string
+        }
+        Insert: {
+          bonus_amount?: number | null
+          claimed_at?: string | null
+          created_at?: string | null
+          day_number: number
+          id?: string
+          investment_id: string
+          profit_amount: number
+          user_id: string
+        }
+        Update: {
+          bonus_amount?: number | null
+          claimed_at?: string | null
+          created_at?: string | null
+          day_number?: number
+          id?: string
+          investment_id?: string
+          profit_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_payouts_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investments: {
         Row: {
           amount: number
           created_at: string
+          daily_profit_amount: number | null
+          days_completed: number | null
           end_date: string | null
           id: string
+          last_bonus_claim_date: string | null
+          last_payout_date: string | null
           profit_percentage: number | null
           start_date: string
           status: string
@@ -29,8 +74,12 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          daily_profit_amount?: number | null
+          days_completed?: number | null
           end_date?: string | null
           id?: string
+          last_bonus_claim_date?: string | null
+          last_payout_date?: string | null
           profit_percentage?: number | null
           start_date?: string
           status?: string
@@ -40,8 +89,12 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          daily_profit_amount?: number | null
+          days_completed?: number | null
           end_date?: string | null
           id?: string
+          last_bonus_claim_date?: string | null
+          last_payout_date?: string | null
           profit_percentage?: number | null
           start_date?: string
           status?: string
@@ -244,6 +297,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_daily_payout: {
+        Args: { p_investment_id: string }
+        Returns: Json
+      }
       complete_expired_investments: {
         Args: Record<PropertyKey, never>
         Returns: undefined
