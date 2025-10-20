@@ -22,7 +22,7 @@ export default function Dashboard() {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       const { data: investments } = await (supabase as any)
         .from("investments")
@@ -33,10 +33,10 @@ export default function Dashboard() {
       const completedInvestments = investments?.filter((i: any) => i.status === "completed") || [];
 
       return {
-        totalBalance: profile?.total_balance || 0,
+        totalBalance: Number(profile?.total_balance || 0),
         totalInvestment: investments?.reduce((sum: number, inv: any) => sum + parseFloat(inv.amount), 0) || 0,
-        totalEarnings: profile?.total_earnings || 0,
-        referralBonus: profile?.total_referral_bonus || 0,
+        totalEarnings: Number(profile?.total_earnings || 0),
+        referralBonus: Number(profile?.total_referral_bonus || 0),
         activeCount: activeInvestments.length,
         completedCount: completedInvestments.length,
       };
@@ -95,28 +95,28 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Balance"
-          value={`₦${stats?.totalBalance.toLocaleString() || "0"}`}
+          value={`₦${stats?.totalBalance?.toLocaleString() ?? "0"}`}
           icon={Wallet}
           trend="+20.1% from last month"
           glowColor="purple"
         />
         <StatsCard
           title="Total Investment"
-          value={`₦${stats?.totalInvestment.toLocaleString() || "0"}`}
+          value={`₦${stats?.totalInvestment?.toLocaleString() ?? "0"}`}
           icon={TrendingUp}
           trend="+15.3% from last month"
           glowColor="cyan"
         />
         <StatsCard
           title="Total Earnings"
-          value={`₦${stats?.totalEarnings.toLocaleString() || "0"}`}
+          value={`₦${stats?.totalEarnings?.toLocaleString() ?? "0"}`}
           icon={DollarSign}
           trend="+18.7% from last month"
           glowColor="pink"
         />
         <StatsCard
           title="Referral Bonus"
-          value={`₦${stats?.referralBonus.toLocaleString() || "0"}`}
+          value={`₦${stats?.referralBonus?.toLocaleString() ?? "0"}`}
           icon={Users}
           trend="Active referrals"
           glowColor="purple"

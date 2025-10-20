@@ -80,6 +80,35 @@ export function WithdrawalModal({ open, onOpenChange, maxAmount }: WithdrawalMod
         });
 
       if (error) throw error;
+
+      // Immediately reflect the withdrawal in the user's available balance
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("total_balance")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profileError) throw profileError;
+
+      const currentBalance = Number(profileData?.total_balance || 0);
+      if (withdrawalAmount > currentBalance) {
+        throw new Error("Insufficient balance for this withdrawal");
+      }
+
+      const { error: balanceError } = await supabase
+        .from("profiles")
+        .update({ total_balance: currentBalance - withdrawalAmount })
+        .eq("id", user.id);
+      if (balanceError) throw balanceError;
+
+      // Create a pending transaction record
+      const { error: txError } = await supabase.from("transactions").insert({
+        user_id: user.id,
+        type: "withdrawal",
+        amount: withdrawalAmount,
+        description: "Withdrawal requested",
+        status: "pending",
+      });
+      if (txError) throw txError;
     },
     onSuccess: () => {
       toast({
@@ -87,6 +116,8 @@ export function WithdrawalModal({ open, onOpenChange, maxAmount }: WithdrawalMod
         description: "Your withdrawal request has been submitted successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
       onOpenChange(false);
       setAmount("");
       setBankName("");
@@ -154,9 +185,9 @@ export function WithdrawalModal({ open, onOpenChange, maxAmount }: WithdrawalMod
               id="amount"
               type="number"
               min="100"
-              max={maxAmount}
-              step="0.01"
-              value={amount}
+        max={maxAmount}
+        step="0.01"
+        value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Enter amount"
               className="gradient-input"

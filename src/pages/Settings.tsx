@@ -22,7 +22,7 @@ export default function Settings() {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -82,7 +82,7 @@ export default function Settings() {
         </CardHeader>
         <CardContent>
           <div className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            ₦{profile?.total_balance.toLocaleString() || "0"}
+            ₦{profile?.total_balance?.toLocaleString() ?? "0"}
           </div>
           <p className="text-sm text-muted-foreground mt-2">
             This is your available balance for withdrawal
@@ -142,7 +142,7 @@ export default function Settings() {
       <WithdrawalModal
         open={showWithdrawalModal}
         onOpenChange={setShowWithdrawalModal}
-        maxAmount={profile?.total_balance || 0}
+        maxAmount={Number(profile?.total_balance || 0)}
       />
     </div>
   );

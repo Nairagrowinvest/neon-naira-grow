@@ -26,8 +26,9 @@ export default function Investments() {
         description: `₦${Number(data.profit).toLocaleString()} profit + ₦${Number(data.bonus).toLocaleString()} bonus`
       });
       queryClient.invalidateQueries({ queryKey: ["all-investments"] });
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["investment-payouts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -60,7 +61,7 @@ export default function Investments() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
@@ -151,9 +152,9 @@ export default function Investments() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {investments.map((investment: any) => {
-            const dailyProfit = investment.daily_profit_amount || 0;
+            const dailyProfit = Number(investment.daily_profit_amount || 0);
             const totalProfit = dailyProfit * 7;
-            const totalReturn = investment.amount + totalProfit;
+            const totalReturn = Number(investment.amount) + totalProfit;
             const currentDay = getCurrentDay(investment.start_date);
             const progress = (investment.days_completed / 7) * 100;
 
@@ -239,7 +240,7 @@ export default function Investments() {
                       ) : (
                         <>
                           <Gift className="mr-2 h-4 w-4" />
-                          Claim Day {currentDay} Payout (₦{(dailyProfit + 20).toLocaleString()})
+                          Claim Day {currentDay} Payout (₦{(Number(dailyProfit) + 20).toLocaleString()})
                         </>
                       )}
                     </Button>
